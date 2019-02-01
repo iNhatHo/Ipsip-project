@@ -24,7 +24,7 @@ def main(event,context):
               "(aname, host, type, urgency, ttime, htime) "
               "VALUES (%s, %s, %s, %s, %s, %s)")
     with conn.cursor() as cur:
-        cur.execute(add_salary,data_employee)
+        cur.execute(addy,data)
         cur.execute("select * from test")
         conn.commit()
         cur.close()
