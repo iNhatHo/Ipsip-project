@@ -21,12 +21,14 @@ def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
     result = []
     with conn.cursor() as cur:
-        cur.execute("select * from test")
+        cur.execute("select ttime,id,aname,type,urgency from test where aname = 'Testing stage 4'")
         conn.commit()
         cur.close()
         for row in cur:
-            result.append({'id': row[0],'aname': row[1],'type': row[2],'host': row[3]})
-    return (result)
+            result.append({'ttime': row[0], 'id': row[1], 'aname': row[2],'type': row[3], 'urgency': row[4]})
+    final = json.dumps(result, default = myconverter)
+    new = final.replace('\"','')
+    return (new)
     
 
 
