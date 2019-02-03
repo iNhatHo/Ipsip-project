@@ -21,7 +21,7 @@ def main(event,context):
     rtime = now.strftime("%H")
     data = (event['name'], event['urgency'],event['host'], event['type'], time, rtime)
     add = ("INSERT INTO test "
-              "(aname, host, type, urgency, ttime, htime) "
+              "(aname, urgency, host, type, ttime, htime) "
               "VALUES (%s, %s, %s, %s, %s, %s)")
     with conn.cursor() as cur:
         cur.execute(add,data)
