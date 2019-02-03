@@ -4,6 +4,7 @@ import boto3
 import pymysql
 import sys
 import json
+import datetime
 
 REGION = 'us-east-1'
 
@@ -12,29 +13,21 @@ name = "appychip"
 password = "12345678"
 db_name = "appychip"
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-try:
-    mydb = pymysql.connect(host=rds_host, user=name, password=password, db=db_name, connect_timeout=5, cursorclass=pymysql.cursors.DictCursor)
-except:
-    logger.error("ERROR: Unexpected error: Could not connect to MySql instance.")
-    sys.exit()
-
-logger.info("SUCCESS: Connection to RDS mysql instance succeeded")
-
 def myconverter(o):
     if isinstance(o, datetime.datetime):
         return o.__str__()
 
 def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
-    mycursor = mydb.cursor()
-    mycursor.execute("SELECT * FROM test")
-    myresult = mycursor.fetchall()
-    final=json.dumps(myresult, default = myconverter)
-    newString = final.replace('\','')
-    return (newString)
+    result = []
+    with conn.cursor() as cur:
+        cur.execute("select * from test")
+        conn.commit()
+        cur.close()
+        for row in cur:
+            result.append({'id': row[0],'aname': row[1],'type': row[2],'host': row[3]})
+    return (result)
+    
 
 
 
