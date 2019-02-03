@@ -19,10 +19,9 @@ def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
     time = now.strftime("%Y-%m-%d %H:%M")
     rtime = now.strftime("%H")
-    data_employee = (time)
     with conn.cursor() as cur:
-        cur.execute("""Update test SET urgency = 'resolve',rtime =%s where aname ='CPU error'and host = 'Nhat-Ho-host'and urgency = 'trigger'""", (time))
-        cur.execute("select * from test")
+        cur.execute("""Update test SET type = 'resolve', rtime =%s where aname =%s and host = %s and type = 'trigger'""", (time,event['name'],event['host']))
+        cur.execute("select * from test ")
         conn.commit()
         cur.close()
         for row in cur:
