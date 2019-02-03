@@ -19,12 +19,12 @@ def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
     time = now.strftime("%Y-%m-%d %H:%M")
     rtime = now.strftime("%H")
-    data = ('CPU error', 'Nhat-Ho-host', 'high', 'trigger', time, rtime)
+    data = (event['name'], event['urgency'],event['host'], event['type'], time, rtime)
     add = ("INSERT INTO test "
               "(aname, host, type, urgency, ttime, htime) "
               "VALUES (%s, %s, %s, %s, %s, %s)")
     with conn.cursor() as cur:
-        cur.execute(addy,data)
+        cur.execute(add,data)
         cur.execute("select * from test")
         conn.commit()
         cur.close()
