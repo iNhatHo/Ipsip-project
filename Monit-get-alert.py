@@ -26,21 +26,10 @@ def main(event,context):
         cur.close()
         for row in cur:
             result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
-    final = json.dumps(result, default = myconverter)
-    new = final.replace('\"','')
+    o = json.dumps(result, default = myconverter)
+    new = json.loads(o)
     return (new)
-    
 
 
 
 
-
-
-
-
-# event = {
-#   "id": 777,
-#   "name": "appychip"
-# }
-# context = ""
-# main(event, context)
