@@ -21,15 +21,13 @@ def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
     result = []
     with conn.cursor() as cur:
-        cur.execute("select ttime,id,name,type,urgency,host from test ")
+        cur.execute("select ttime,id,name,type,urgency,host from alerttrigger where type='Trigger'")
         conn.commit()
         cur.close()
         for row in cur:
             result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
     o = json.dumps(result, default = myconverter)
     new = json.loads(o)
+    print datetime.datetime.now()
     return (new)
-
-
-
-
+    
