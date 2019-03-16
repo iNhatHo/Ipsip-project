@@ -1,360 +1,471 @@
+﻿
 
 
---1
-alter proc Question1
-	@hHoTen nvarchar (25) out
-as 
-begin
-	select gv.HOTEN
-	from GIAOVIEN gv , DETAI dt
-	where dt.MADT = 001 and dt.GVCNDT = gv.MAGV
-end
+
+										--Em đặt tên tất cả trigger là utr_rb để lúc em kiểm tra nó không bị dính trigger của câu trc ( vì em có drop if trigger is not null)--
+
+
+
+
+-- R2. Trưởng bộ môn phải sinh trước 1975 
+--B2
+-- BOMON : I(+) D(-) U(+ Truongbm)
+-- GIAOVIEN :I(-) D(-) U(+ NgaySinh)
+--B3
+if OBJECT_ID('utr_rb') IS NOT NULL
+	drop trigger UTR_RB
 go
-declare @KQ nvarchar (25)
-exec Question1 @KQ output
-print @KQ
-
---2
-alter proc Question2
-	@a int, @luong int out
+create trigger utr_rb
+on BOMON
+for insert, update
 as
 begin
-	set @luong = ( 
-	select g.LUONG
-	from GIAOVIEN g
-	where @a= g.MAGV)
+	select * from inserted
+	if exists (select * 
+			   from GIAOVIEN g, inserted i
+			   where g.MAGV=i.TRUONGBM and YEAR(g.NGSINH) > 1975)
+	begin
+		RAISERROR('RB2 1',16,1)
+		ROLLBACK
+	end
 end
 go
-declare @KQ int
-exec Question2 5 , @KQ output
-print @KQ
-
---3
-create proc Question3
-	@a int , @b int out
+--
+if object_id('urt_rb') is not null
+	drop trigger utr_rb
+go
+create trigger utr_rb
+on giaovien
+for update
 as
 begin
-	set @b = (	select count (*)
-				from GIAOVIEN gv
-				where gv.GVQLCM = @a)
+	if update(NGSINH)
+	begin
+	select * from inserted
+	select * from deleted
+	if exists (select *
+			   from BOMON bm, inserted i
+			   where bm.TRUONGBM=i.MAGV and Year(i.NGSINH) > 1975)
+	begin
+		raiserror('RB2 2',16,1)
+		rollback
+		end
+	end
+end	 
+--B5
+insert BOMON(MABM,TRUONGBM)
+values('PHP33','006')
+--
+update BOMON
+set TRUONGBM='006'
+where MABM='HTTT'
+--
 
+update GIAOVIEN
+set NGSINH=('1980-06-06')
+where MAGV='004'
 
-end
+-------------------------------
+
+--R3. Một bộ môn có tối thiểu 1 giáo viên nữ 
+--B2
+-- GIAOVIEN : I(-) D(+) U(+ Phai)
+--B3
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
 go
-declare @KQ int
-exec Question3 7, @KQ output
-print @KQ
-		
---4
-go
-alter proc Question4
-	@a int , @b int out
+create trigger utr_rb
+on giaovien
+for delete, update
 as
 begin
-	set @b =  ( select count (distinct t.MADT)
-				from THAMGIADT t
-				where @a = t.MAGV)
+	select * from deleted d
+	declare @i int
+	select @i = count(*) from deleted d, BOMON bm where d.MABM=bm.MABM and d.PHAI=N'Nữ'
+	if (@i < 2)
+	begin
+		raiserror('RB3 1',16,1)
+		rollback
+	end
 end
-go
-declare @KQ int
-exec Question4 5, @KQ output
-print @KQ
+--B4
+delete GIAOVIEN
+where magv='006'
+--
+update GIAOVIEN
+set PHAI=N'NAM'
+where MAGV='006'
 
---5
+-------------------------------
+
+--R4 Một giáo viên phải có ít nhất 1 số điện thoại
+--B2
+-- GV_DT I(-) D(+) U(+ MAGV)
+--B3
+--
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
 go
-alter proc Question5
-	@a int , @b int , @c int out
+create trigger utr_rb
+on GV_DT
+for delete, update
 as
 begin
-	set @c = (	select count( t.MAGV)
-				from THAMGIADT t
-				where @a=t.MADT and @b=t.STT)
+	select * from deleted d
+	declare @i int
+	select @i = count(*) from deleted d, GV_DT gt where d.MAGV=gt.MAGV and gt.DIENTHOAI is not null
+	if( @i < 1)
+	begin
+		raiserror('RB4 1',16,1)
+		rollback
+		return
+	end
 end
-go
-declare @KQ int
-exec Question5 2, 3, @kq output
-print @kq
+--B4
+delete GV_DT
+where MAGV='002'
+--
+update GV_DT
+set MAGV='003'
+where MAGV='002'
 
---6
+-------------------------------
+
+--R5 Một giáo viên có tối đa 3 số điện thoại
+--B2
+-- GV_DT I(+) D(-) U(+ MAGV)
+--B3
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
 go
-alter proc Question6
-	@MaGV int, @Hoten nvarchar(30), @Phai nvarchar(10), @NgaySinh date, @DiaChi nvarchar(50), @GVQLCM nvarchar(21), @MaBM nvarchar(10)
+create trigger utr_rb
+on GV_DT
+for insert, update
 as
 begin
-	if exists ( select *
-				from GIAOVIEN gv
-				where gv.MAGV=@MaGV)
+	select * from inserted i
+	declare @i int
+	select @i = count(*) from inserted i, GV_DT gt where i.MAGV=gt.MAGV and gt.DIENTHOAI is not null
+	if( @i >3 )
 	begin
-		print 'GV ton tai'
-		return 1;
+		raiserror('RB4 1',16,1)
+		rollback
+		return
 	end
-	if not exists ( select *
-					from BOMON bm
-					where bm.MABM=@MaBM)
-	begin
-		print 'BM chua ton tai'
-		return 1;
-	end
-	if not exists ( select *
-					from GIAOVIEN gv
-					where gv.GVQLCM=@GVQLCM)
-	begin
-		print 'GVQLCM chua ton tai'
-		return 1;
-	end
-	if @Hoten is null
-	begin
-		print 'Ho Ten Rong'
-		return 1;
-	end
-	insert GIAOVIEN
-	values (@MaGV,@Hoten,null,@Phai,@NgaySinh,@DiaChi,@GVQLCM,@MaBM)
-	if @@ROWCOUNT =0
-	begin
-		print 'Them Khong Thanh Cong'
-		return 1;
-	end
-	return 0; 
 end
+--
+--B5
+insert GV_DT(MAGV,DIENTHOAI)
+values ('003','0235343')
+select * from GV_DT
+--
+update GV_DT
+set MAGV='003'
+where MAGV='001'
+select * from GV_DT
+
+-------------------------------
+
+--R6 Một bộ môn phải có tối thiểu 4 giáo viên
+--B2
+-- GIAOVIEN I(-) D(+) U(+ MABM)
+-- BOMON I(+) D(-) U(+ MABM)
+--B3
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
 go
-exec Question6 023,N'Le Vinh Khang','nam','12/20/1990','abc','002', 'HPT'
+create trigger utr_rb
+on GIAOVIEN
+for delete,update
+as
+begin
+	select * from deleted d
+	declare @i int
+	select @i = count(*) from deleted d, GIAOVIEN gv where d.MABM=gv.MABM
+	if (@i <5 )
+	begin
+		raiserror('RB6 1',16,1)
+		rollback
+	end
+end
+--
+if object_id('utr_rb') is not null
+	drop trigger utr_rb
+go
+create trigger utr_rb
+on BOMON
+for insert,update
+as
+begin
+	select * from inserted i
+	declare @i int
+	select @i = count(*) from inserted i, GIAOVIEN gv where i.MABM=gv.MABM
+	if (@i <5 )
+	begin
+		raiserror('RB6 2',16,1)
+		rollback
+	end
+end
+update GIAOVIEN
+set MABM='HTTT'
+where MAGV='007'
+--
+delete GIAOVIEN
+where MAGV='006'
+--
+insert BOMON(MABM)
+values ('PHP33')
+--
+update BOMON
+set MABM ='PHP33'
+where MABM='SH'
+
+-------------------------------
+
+--RB7 Trưởng bộ môn phải là người lớn tuổi nhất trong bộ môn.
+--B2
+-- GIAOVIEN: I(+) D(-) U(+ NGSINH)
+-- BOMON: I(-) D(-) U(+ TRUONGBM)
+--B3
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
+go
+create trigger utr_rb
+on GIAOVIEN
+for insert,update
+as
+begin
+	select * from inserted i
+	declare @i date
+	select @i = i.NGSINH from inserted i
+	if @i > (select MIN(gv.NGSINH)
+			   from GIAOVIEN gv, BOMON bm
+			   where bm.MABM=gv.MABM)
+	begin
+		raiserror('RB7 1',16,1)
+		rollback
+	end
+end
+--
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
+go
+create trigger utr_rb
+on BOMON
+for update
+as
+begin
+	if exists (select MIN(gv.NGSINH)
+			   from GIAOVIEN gv, BOMON bm
+			   where bm.MABM=gv.MABM)
+	begin
+		raiserror('RB7 2',16,1)
+		rollback
+	end
+end
+--B5
 select * from GIAOVIEN
---7
+update GIAOVIEN
+set NGSINH='1980-06-20'
+where magv='002'
 go
-alter proc Question7
-	@MaDT int,@SoTT nvarchar(5),@TenCV nvarchar(50),@NgayBD date,@NgayKT date
-as
-begin
-	if not exists ( select *
-					from DETAI dt
-					where dt.MADT=@MaDT)
-	begin
-		print 'MaDT Khong Ton Tai'
-		return 1;
-	end
-	if exists ( select *
-				from CONGVIEC cv
-				where cv.SOTT=@SoTT)
-	begin
-		print 'SoTT da ton tai '
-		return 1;
-	end
-	if @TenCV is null
-	begin
-		print 'TenCV rong'
-		return 1;
-	end
-	if exists ( select *
-				from CONGVIEC cv
-				where cv.TENCV=@TenCV)
-	begin
-		print 'TenCV bi trung'
-		return 1;
-	end
-	if datediff(DAY,@NgayBD,@NgayKT) < 0
-	begin
-		print 'NgayBD phai nho hon NgayKT'
-		return 1;
-	end
-	insert CONGVIEC
-	values (@MaDT,@SoTT,@TenCV,@NgayBD,@NgayKT)
-	if @@ROWCOUNT =0
-	begin
-		print 'Them Khong Thanh Cong'
-		return 1;
-	end
-	return 0; 
-end
-go
-exec Question7 001,8,'Choi Game','2017-03-12','2017-05-15'
-select * from CONGVIEC
+--
+--
+insert GIAOVIEN(MAGV,NGSINH,MABM)
+values('033','1960-06-06','HTTT')
+--
+update BOMON
+set TRUONGBM='003'
+where MABM='HTTT'
 
---8
+-------------------------------
+
+--RB8 Nếu một giáo viên đã là trưởng bộ môn thì giáo viên đó không làm người quản lý chuyên môn.
+--B2
+-- GIAOVIEN I(-) D(-) U(+ QLCM)
+-- BOMON I(+) D(-) U(+ TRUONGBM)
+--B3
+if object_id('utr_rb') is not null
+	drop trigger utr_rb
 go
-alter proc Question8
-	@MaGV char(5), @MaDT char(3), @STT int, @PhuCap float
+create trigger utr_rb
+on GIAOVIEN
+for update
 as
 begin
-	if not exists ( select *
-					from GIAOVIEN gv
-					where gv.MAGV=@MaGV)
+	if update(GVQLCM)
+	if exists  (select gv.MAGV
+				from GIAOVIEN gv, BOMON bm
+				where gv.GVQLCM=bm.TRUONGBM)	
 	begin
-		print 'MaGV khong ton tai'
-		return 1;
-	end
-	if not exists ( select * 
-					from CONGVIEC cv 
-					where cv.MADT = @madt and cv.SOTT = @stt) 
-	begin
-		print 'Cong viec da co nguoi tham gia'
-		return 1
-	end
-	if exists ( Select *
-				from THAMGIADT tg
-				where tg.MADT=@MaDT and tg.STT=@STT and tg.MAGV=@MaGV)
-	begin
-		print 'Giao Vien da tham gia cong viec nay'
-		return 1;
-	end
-	if @PhuCap < 0
-	begin
-		print 'Phu Cap phai tren 0.0'
-		return 1;
-	end
-	insert THAMGIADT
-	values (@MaGV,@MaDT,@STT,@PhuCap,null)
-	if @@ROWCOUNT=0
-	begin
-		print 'Them Khong Thanh Cong'
-		return 1;
-	end
-	return 0;
+		raiserror('RB8 1',16,1)
+		rollback
+	end		
 end
 go
-exec Question8 '003','002',3,3.5
+--
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
+go
+create trigger utr_rb
+on BOMON
+for insert, update
+as
+begin
+	select * from inserted i
+	if exists (select *
+			   from inserted i, GIAOVIEN gv
+			   where gv.GVQLCM=i.TRUONGBM)
+		begin
+		raiserror('RB8 2',16,1)
+		rollback
+	end		
+end
+go
+--B5
+update GIAOVIEN
+set GVQLCM='005'
+where MAGV='001'
+--
+update BOMON
+set TRUONGBM='007'
+where MABM='CNTT'
+--
+insert BOMON(MABM,TRUONGBM)
+values('PHP30','001')
+
+-------------------------------
+
+--RB9 Giáo viên và giáo viên quản lý chuyên môn của giáo viên đó phải thuộc về 1 bộ môn.
+--B2
+-- GIAOVIEN I(+) D(-) U(+ MABM)
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
+go
+create trigger utr_rb
+on GIAOVIEN
+for insert,update
+as
+begin
+	select * from inserted i
+	if not exists ( select *
+				from GIAOVIEN gv, inserted i
+				where gv.GVQLCM=i.MAGV and gv.MABM=i.MABM)
+	begin
+		raiserror('RB9 1',16,1)
+		rollback
+	end
+end
+--
+insert GIAOVIEN(MAGV,GVQLCM,MABM)
+values ('013','005','MMT')
+--
+update GIAOVIEN
+set GVQLCM='004'
+where MAGV='005'
+
+-------------------------------
+
+--RB10 Mỗi giáo viên chỉ có tối đa 1 vợ chồng
+--RB11 Giáo viên là Nam thì chỉ có vợ chồng là Nữ hoặc ngược lại.
+--RB12 Nếu thân nhân có quan hệ là “con gái” hoặc “con trai” với giáo viên thì năm sinh của giáo viên phải nhỏ hơn năm sinh của thân nhân.
+--RB13 Một giáo viên chỉ làm chủ nhiệm tối đa 3 đề tài.
+--B2
+-- DETAI I(+) D(-) U(+ GVCNDT)
+--B3
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
+go
+create trigger utr_rb
+on DETAI
+for insert,update
+as
+begin
+	select * from inserted i
+	declare @i int
+	select @i = count(*) from inserted i, GIAOVIEN gv where i.GVCNDT=gv.MAGV
+	if (@i < 4)
+	begin
+		raiserror('RB13 1',16,1)
+		rollback
+	end
+end
+--B5
+insert DETAI(MADT,GVCNDT)
+values ('018','002')
+--
+update DETAI
+set GVCNDT='002'
+where MADT='003'
+
+-------------------------------
+
+--RB14 Một đề tài phải có ít nhất một công việc
+--B2
+--  CONGVIEC: I(-) D(+) U(+ MADT)
+--B3
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
+go
+create trigger utr_rb
+on CONGVIEC
+for delete,update
+as
+begin
+	select * from deleted d
+	declare @i int
+	select @i = count(*) from deleted i, DETAI dt, CONGVIEC cv where i.MADT=dt.MADT and i.SOTT=cv.SOTT
+	if (@i > 1)
+	begin
+		raiserror('RB14 1',16,1)
+		rollback
+	end
+end
+--B5
+-- Xóa rằng buộc để có thể xóa ở bảng công việc
 select * from THAMGIADT
+delete THAMGIADT
+where MADT='001' and STT=1
+--
+delete CONGVIEC
+where MADT='001' and SOTT=1
+--
+update CONGVIEC
+set MADT='002',SOTT=9
+where MADT='001' and SOTT=1
 
---9
+-------------------------------
+
+--RB15 Lương của giáo viên phải nhỏ hơn lương người quản lý của giáo viên đó.
+--B2
+-- GIAOVIEN I(+) D(-) U(+)
+--B3
+if OBJECT_ID('utr_rb') is not null
+	drop trigger utr_rb
 go
-alter proc Question9
-	@MaGV char(5), @HoTen nvarchar(50), @Luong int, @Phai nvarchar(5),@DiaChi nvarchar(50), @GVQLCM char(5), @MaBM char(5), @TinhTrang nvarchar(15)
+create trigger utr_rb
+on GIAOVIEN
+for insert,update
 as
 begin
-	if not exists ( Select *
-					from GIAOVIEN gv
-					where gv.MAGV=@Magv)
+	select * from inserted i
+	if exists (select MAX(gv.LUONG)
+			   from GIAOVIEN gv, inserted i
+			   where gv.MAGV=i.GVQLCM)
 	begin
-		print 'MaGV khong ton tai'
-		return 1;
+		raiserror('RB15 1',16,1)
+		rollback
 	end
-	if not exists ( Select *
-					from BOMON bm
-					where bm.MABM=@MaBM)
-	begin
-		print 'MaBM khong ton tai'
-		return 1;
-	end
-	if not exists ( Select *
-					From GIAOVIEN gv
-					Where gv.MAGV=@GVQLCM)
-	begin
-		print 'GVQLCM khong ton tai'
-		return 1;
-	end
-	if @HoTen is null
-	begin
-		print 'Ho Ten khong duoc trong'
-		return 1;
-	end
-	if @Luong <100
-	begin
-		print 'Luong khong duoc nho hon 100'
-		return 1;
-	end
-	update GIAOVIEN 
-	set HOTEN =@HoTen, LUONG=@Luong, PHAI=@Phai, DIACHI=@DiaChi, GVQLCM=@GVQLCM, MABM=@MaBM 
-	where MAGV=@MaGV
-	if @@ROWCOUNT=0
-	begin
-		print 'Them Khong Thanh Cong'
-		return 1;
-	end
-	return 0;
 end
+--B5
+update GIAOVIEN
+set LUONG =3000
+where MAGV='003'
 go
-exec Question9 '002','Ho Minh Nhat',3000,'Nam','158/24 XVNT','003','CNTT','Dat'
-select * from GIAOVIEN
+--
+insert GIAOVIEN(MAGV,LUONG,GVQLCM)
+values('033',3000,'002')
 
---10
-go
-alter proc Question10
-	@MAGV char(5), @MADT char(3), @STT int
-as
-begin
-	if not exists ( select *
-					from THAMGIADT tg
-					where tg.MAGV=@MAGV)
-	begin
-		print 'MAGV khong ton tai'
-		return 1
-	end
-	if not exists ( select *
-					from THAMGIADT tg
-					where tg.MADT=@MADT and STT=@STT)
-	begin
-		print 'Cong Viec Khong ton tai trong bang THAMGIADT'
-		return 1
-	end
-	if  exists( select *
-				from THAMGIADT tg
-				where tg.MADT=@MADT and STT=@STT and tg.KETQUA is NOT NULL)
-	begin
-		print 'Cong Viec da co ket qua'
-		return 1
-	end
-	delete THAMGIADT
-	where MAGV=@MAGV and MADT=@MADT and STT=@STT and KETQUA is NULL
-	if @@ROWCOUNT =0
-	begin
-		print 'Xoa Khong Thanh Cong'
-		return 1;
-	end
-	return 0; 
-end
-go
-exec Question10 '002','001',4
-select * from THAMGIADT
 
---11
-go
-alter proc Question11
-	@MAGV char(5)
-as
-begin
-	if not exists ( select *
-					from GIAOVIEN gv
-					where gv.MAGV=@MAGV)
-	begin
-		print 'MAGV khong ton tai'
-		return 1
-	end
-	if exists ( select *
-				from KHOA kh
-				where kh.TRUONGKHOA=@MAGV)
-	begin
-		print 'Giao Vien la Truong khoa'
-		return 1
-	end
-	if exists ( select *
-				from BOMON bm
-				where bm.TRUONGBM=@MAGV)
-	begin
-		print 'Giao vien la Truong Bo Mon'
-		return 1
-	end
-	if exists ( select *
-				from DETAI dt
-				where dt.GVCNDT=@MAGV)
-	begin
-		print 'Giao Vien co chu nhiem de tai'
-		return 1
-	end
-	if exists ( select *
-				from THAMGIADT tg
-				where tg.MAGV=@MAGV)
-	begin
-		print 'Giao Vien co tham gia de tai'
-		return 1
-	end
-	delete THAMGIADT 
-	where MAGV=@MAGV
-	if @@ROWCOUNT =0
-	begin
-		print 'Them Khong Thanh Cong'
-		return 1;
-	end
-	return 0; 
-end
-go
-exec Question11 '002'
-select * from THAMGIADT
+
+
