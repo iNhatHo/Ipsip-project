@@ -32,19 +32,19 @@ def main(event,context):
             for row in cur:
                 result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
         if lname != "not" and host != "not" and type == "not" and urgency == "not:
-            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where name =%s and host =%s""", lname,host)
+            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where name =%s and host =%s""", (lname,host))
             conn.commit()
             cur.close()
             for row in cur:
                 result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
 		if lname != "not" and host == "not" and type != "not" and urgency == "not:
-            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where name =%s and type =%s""", lname,type)
+            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where name =%s and type =%s""", (lname,type))
             conn.commit()
             cur.close()
             for row in cur:
                 result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
 		if lname != "not" and host == "not" and type == "not" and urgency != "not:
-            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where name =%s and urgency =%s""", lname,urgency)
+            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where name =%s and urgency =%s""", (lname,urgency))
             conn.commit()
             cur.close()
             for row in cur:
@@ -56,19 +56,19 @@ def main(event,context):
             for row in cur:
                 result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
 		if lname == "not" and host != "not" and type != "not" and urgency == "not:
-            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where host =%s and type =%s""", host,type)
+            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where host =%s and type =%s""", (host,type))
             conn.commit()
             cur.close()
             for row in cur:
                 result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
 		if lname == "not" and host != "not" and type == "not" and urgency != "not:
-            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where host = %s and urgency = %s""", host,urgency)
+            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where host = %s and urgency = %s""", (host,urgency))
             conn.commit()
             cur.close()
             for row in cur:
                 result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
 		if lname == "not" and host == "not" and type != "not" and urgency != "not:
-            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where type =%s and urgency =%s""", host,urgency)
+            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where type =%s and urgency =%s""", (host,urgency))
             conn.commit()
             cur.close()
             for row in cur:
@@ -86,7 +86,7 @@ def main(event,context):
             for row in cur:
                 result.append({'ttime': row[0], 'id': row[1], 'name': row[2],'type': row[3], 'urgency': row[4],'host': row[5]})
 		if lname != "not" and host != "not" and type != "not" and urgency = "not:
-            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where name =%s and host =%s and type =%s""",lname,host,type)
+            cur.execute("""select ttime,id,name,type,urgency,host from alerttrigger where name =%s and host =%s and type =%s""",(lname,host,type))
             conn.commit()
             cur.close()
             for row in cur:
