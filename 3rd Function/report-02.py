@@ -20,14 +20,15 @@ def myconverter(o):
 def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
     result = []
+    timebegin =event.get('timebegin','2000-01-01')
+    timeend =event.get('timeend','2500-01-01')
     with conn.cursor() as cur:
-        cur.execute("select ttime,rtime,id,name,type,urgency,host from alerttrigger where type='Resolve' order by rtime desc")
+        cur.execute("select distinct hour(ttime), count(*) as num from alerttrigger where ttime > %s and ttime < %s group by hour(ttime) order by count(*) desc LIMIT 5",(timebegin,timeend))
         conn.commit()
         cur.close()
         for row in cur:
-            result.append({'ttime': row[0],'rtime': row[1], 'id': row[2], 'name': row[3],'type': row[4], 'urgency': row[5],'host': row[6]})
+            result.append({'Time': row[0], 'amount': row[1]})
     o = json.dumps(result, default = myconverter)
     new = json.loads(o)
     print datetime.datetime.now()
     return (new)
-    

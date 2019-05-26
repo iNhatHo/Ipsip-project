@@ -5,6 +5,7 @@ import pymysql
 import sys
 import json
 import datetime
+import time
 
 REGION = 'us-east-1'
 
@@ -14,20 +15,19 @@ password = "12345678"
 db_name = "appychip"
 
 def myconverter(o):
-    if isinstance(o, datetime.datetime):
+    if isinstance(o, datetime.date):
         return o.__str__()
 
 def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
     result = []
     with conn.cursor() as cur:
-        cur.execute("select ttime,rtime,id,name,type,urgency,host from alerttrigger where type='Resolve' order by rtime desc")
+        cur.execute("select ai.ID ,ai.name,ai.host,ai.info,ai.timein,ai.person,ai.type,a.tooltouse from alertinfo as ai, alert as a where ai.name =a.name and ai.host = a.host")
         conn.commit()
         cur.close()
         for row in cur:
-            result.append({'ttime': row[0],'rtime': row[1], 'id': row[2], 'name': row[3],'type': row[4], 'urgency': row[5],'host': row[6]})
+            result.append({'id': row[0], 'name': row[1], 'host': row[2], 'info': row[3],'timein': row[4], 'person': row[5], 'type': row[6],'tooltouse': row[7]})
     o = json.dumps(result, default = myconverter)
     new = json.loads(o)
-    print datetime.datetime.now()
     return (new)
     

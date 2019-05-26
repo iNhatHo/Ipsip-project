@@ -19,15 +19,16 @@ def myconverter(o):
 
 def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
-    result = []
+    lid = event.get('id',"not")
     with conn.cursor() as cur:
-        cur.execute("select ttime,rtime,id,name,type,urgency,host from alerttrigger where type='Resolve' order by rtime desc")
-        conn.commit()
-        cur.close()
-        for row in cur:
-            result.append({'ttime': row[0],'rtime': row[1], 'id': row[2], 'name': row[3],'type': row[4], 'urgency': row[5],'host': row[6]})
-    o = json.dumps(result, default = myconverter)
-    new = json.loads(o)
-    print datetime.datetime.now()
-    return (new)
+        if lid == "not":
+            return "Missing id"
+        else:
+            cur.execute("delete from alertinfo where id = %s", event['id'])
+            conn.commit()
+            cur.close()
+            return "Action completed"
     
+
+
+

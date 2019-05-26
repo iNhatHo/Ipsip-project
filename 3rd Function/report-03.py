@@ -5,7 +5,6 @@ import pymysql
 import sys
 import json
 import datetime
-import time
 
 REGION = 'us-east-1'
 
@@ -15,18 +14,22 @@ password = "12345678"
 db_name = "appychip"
 
 def myconverter(o):
-    if isinstance(o, datetime.date):
+    if isinstance(o, datetime.datetime):
         return o.__str__()
 
 def main(event,context):
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
     result = []
+    timebegin =event.get('timebegin','2000-01-01')
+    timeend =event.get('timeend','2500-01-01')
     with conn.cursor() as cur:
-        cur.execute("select ai.name,ai.host,ai.info,ai.timein,ai.person,ai.type,a.tooltouse from alertinfo as ai, alert as a where ai.name =a.name and ai.host = a.host")
+        cur.execute("select distinct name, host, count(*) from alertinfo where timein > %s and timein < %s group by name order by count(*) desc limit 3",(timebegin,timeend))
         conn.commit()
         cur.close()
         for row in cur:
-            result.append({'name': row[0], 'host': row[1], 'info': row[2],'timein': row[3], 'person': row[4], 'type': row[5],'tooltouse': row[6]})
+            result.append({'name': row[0],'host':row[1], 'amount': row[2]})
     o = json.dumps(result, default = myconverter)
     new = json.loads(o)
+    print datetime.datetime.now()
     return (new)
+    
